@@ -4,15 +4,17 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>QrGenerator</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.12" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.1" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Data\" />
-      <Folder Include="Services\Interfaces\" />
+      <ProjectReference Include="..\QrGenerator.Application\QrGenerator.Application.csproj" />
+      <ProjectReference Include="..\QrGenerator.Infrastructure\QrGenerator.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>
