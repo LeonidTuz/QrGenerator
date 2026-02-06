@@ -1,9 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using QrGenerator.Application.Interfaces;
 using QrGenerator.Application.Services;
 using QrGenerator.Infrastructure.Auth;
+using QrGenerator.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,12 +15,16 @@ builder.Services.AddControllers();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 var jwtOptions = builder.Configuration
     .GetSection("Jwt")
     .Get<JwtOptions>() ?? throw new InvalidOperationException("Jwt configuration section is missing");
+
+builder.Services.AddDbContext<QrDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
