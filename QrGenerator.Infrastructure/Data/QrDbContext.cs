@@ -11,6 +11,7 @@ public class QrDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<QrCode> QrCodes => Set<QrCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +27,32 @@ public class QrDbContext : DbContext
 
             entity.HasIndex(e => e.PhoneNumber)
                 .IsUnique();
+        });
+
+        modelBuilder.Entity<QrCode>(entity =>
+        {
+            entity.HasKey(e => e.QrCodeId);
+
+            entity.Property(e => e.DoorLockPassword)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.QrCodeData)
+                .IsRequired();
+
+            entity.Property(e => e.QrCodeImageBase64)
+                .IsRequired();
+
+            entity.Property(e => e.DataType)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -6,6 +6,7 @@ using QrGenerator.Application.Interfaces;
 using QrGenerator.Application.Services;
 using QrGenerator.Infrastructure.Auth;
 using QrGenerator.Infrastructure.Data;
+using QrGenerator.Infrastructure.QrCodes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,9 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IQrCodeService, QrCodeService>();
+builder.Services.AddScoped<IQrCodeRepository, QrCodeRepository>();
+builder.Services.AddScoped<IQrCodeGenerator, QrCodeGenerator>();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
@@ -52,7 +56,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
