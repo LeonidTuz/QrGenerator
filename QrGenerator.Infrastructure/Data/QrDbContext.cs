@@ -29,6 +29,9 @@ public class QrDbContext : DbContext
                 .IsUnique();
         });
 
+        modelBuilder.Entity<QrCode>().Property(e => e.QrCodeImageBase64).HasColumnType("text");
+        modelBuilder.Entity<QrCode>().Property(e => e.QrCodeData).HasColumnType("text");
+
         modelBuilder.Entity<QrCode>(entity =>
         {
             entity.HasKey(e => e.QrCodeId);

@@ -13,26 +13,26 @@ public class QrCodeRepository : IQrCodeRepository
         _context = context;
     }
 
-    public async Task<QrCode> Create(QrCode qrCode, CancellationToken cancellationToken = default)
+    public async Task<QrCode> Create(QrCode qrCode, CancellationToken ct)
     {
         _context.QrCodes.Add(qrCode);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(ct);
         return qrCode;
     }
 
-    public async Task<QrCode?> GetById(Guid qrCodeId, CancellationToken cancellationToken = default)
+    public async Task<QrCode?> GetById(Guid qrCodeId, CancellationToken ct)
     {
         return await _context.QrCodes
             .AsNoTracking()
-            .FirstOrDefaultAsync(q => q.QrCodeId == qrCodeId, cancellationToken);
+            .FirstOrDefaultAsync(q => q.QrCodeId == qrCodeId, ct);
     }
 
-    public async Task<IEnumerable<QrCode>> GetByUserId(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<QrCode>> GetByUserId(Guid userId, CancellationToken ct)
     {
         return await _context.QrCodes
             .AsNoTracking()
             .Where(q => q.UserId == userId)
             .OrderByDescending(q => q.CreatedAt)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(ct);
     }
 }

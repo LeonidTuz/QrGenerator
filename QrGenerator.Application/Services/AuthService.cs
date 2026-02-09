@@ -15,11 +15,11 @@ public class AuthService : IAuthService
         _userRepository = userRepository;
     }
 
-    public async Task<AuthResponse> LoginByPhoneAsync(string phoneNumber, CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> LoginByPhoneAsync(string phoneNumber, CancellationToken ct)
     {
         var normalizedPhoneNumber = NormalizePhoneNumber(phoneNumber);
 
-        var user = await _userRepository.GetByPhoneNumber(normalizedPhoneNumber, cancellationToken);
+        var user = await _userRepository.GetByPhoneNumber(normalizedPhoneNumber, ct);
 
         if (user == null)
         {
@@ -29,7 +29,7 @@ public class AuthService : IAuthService
                 PhoneNumber = normalizedPhoneNumber
             };
 
-            await _userRepository.Create(user, cancellationToken);
+            await _userRepository.Create(user, ct);
         }
 
         var token = _tokenService.GenerateToken(user);

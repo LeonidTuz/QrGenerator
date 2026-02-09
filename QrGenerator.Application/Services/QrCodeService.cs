@@ -16,7 +16,7 @@ public class QrCodeService : IQrCodeService
         _qrCodeGenerator = qrCodeGenerator;
     }
 
-    public async Task<QrCodeResponse> CreateQrCode(Guid userId, CreateQrCodeRequest request, CancellationToken cancellationToken = default)
+    public async Task<QrCodeResponse> CreateQrCode(Guid userId, CreateQrCodeRequest request, CancellationToken ct)
     {
         if (request.StartDate >= request.EndDate)
         {
@@ -48,20 +48,21 @@ public class QrCodeService : IQrCodeService
             DataType = "CheckInData"
         };
 
-        var savedQrCode = await _qrCodeRepository.Create(qrCode, cancellationToken);
+        var savedQrCode = await _qrCodeRepository.Create(qrCode, ct);
 
         return MapToResponse(savedQrCode);
     }
 
-    public async Task<QrCodeResponse?> GetQrCodeById(Guid qrCodeId, CancellationToken cancellationToken = default)
+    public async Task<QrCodeResponse?> GetQrCodeById(Guid qrCodeId, Guid userId,  CancellationToken ct)
     {
-        var qrCode = await _qrCodeRepository.GetById(qrCodeId, cancellationToken);
-        return qrCode == null ? null : MapToResponse(qrCode);
+        var qrCode = await _qrCodeRepository.GetById(qrCodeId, ct);
+        if (qrCode == null || qrCode.UserId != userId) return null;
+        return MapToResponse(qrCode);
     }
 
-    public async Task<IEnumerable<QrCodeResponse>> GetUserQrCodes(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<QrCodeResponse>> GetUserQrCodes(Guid userId, CancellationToken ct)
     {
-        var qrCodes = await _qrCodeRepository.GetByUserId(userId, cancellationToken);
+        var qrCodes = await _qrCodeRepository.GetByUserId(userId, ct);
         return qrCodes.Select(MapToResponse);
     }
 

@@ -4,6 +4,6 @@ namespace QrGenerator.Application.Services;
 
 public interface IAuthService
 {
-    Task<AuthResponse> LoginByPhoneAsync(string phoneNumber, CancellationToken cancellationToken = default);
+    Task<AuthResponse> LoginByPhoneAsync(string phoneNumber, CancellationToken ct);
 }
 
