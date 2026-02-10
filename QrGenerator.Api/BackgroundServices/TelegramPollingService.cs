@@ -9,23 +9,20 @@ public class TelegramPollingService : BackgroundService
 {
     private readonly ILogger<TelegramPollingService> _logger;
     private readonly HttpClient _httpClient;
-    private readonly IUserRepository _userRepository;
-    private readonly ITelegramSender _telegramSender;
     private readonly TelegramOptions _options;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     private long _offset;
 
     public TelegramPollingService(
         ILogger<TelegramPollingService> logger,
         IHttpClientFactory httpClientFactory,
-        IUserRepository userRepository,
-        ITelegramSender telegramSender,
-        IOptions<TelegramOptions> telegramOptions)
+        IOptions<TelegramOptions> telegramOptions,
+        IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _httpClient = httpClientFactory.CreateClient("telegram");
-        _userRepository = userRepository;
-        _telegramSender = telegramSender;
+        _scopeFactory = scopeFactory;
         _options = telegramOptions.Value;
     }
 
@@ -88,14 +85,18 @@ public class TelegramPollingService : BackgroundService
                         "User connected telegram chat {ChatId} with payload {Payload}",
                         chatId, payload);
 
-                    var user = await _userRepository.GetById(userId, ct);
+                    using var scope = _scopeFactory.CreateScope();
+                    var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+                    var telegramSender = scope.ServiceProvider.GetRequiredService<ITelegramSender>();
+
+                    var user = await userRepository.GetById(userId, ct);
                     if (user == null)
                         continue;
 
                     user.TelegramId = chatId;
-                    await _userRepository.Update(user, ct);
+                    await userRepository.Update(user, ct);
 
-                    await _telegramSender.SendMessage(
+                    await telegramSender.SendMessage(
                         chatId,
                         "Готово. Теперь можно отправлять QR-коды с сайта.",
                         ct);
