@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR Generator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 1rem; }
+    section { display: none; margin-top: 1rem; }
+    section.active { display: block; }
+    input, button { padding: 0.5rem; margin: 0.25rem 0; width: 100%; }
+    button { cursor: pointer; background: #345; color: #fff; border: none; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error { color: #c00; font-size: 0.9rem; }
+    .qr-img { max-width: 100%; height: auto; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    a { color: #06c; }
+    .footer-img { display: block; margin: 2rem auto 0; max-width: 500px; height: auto; opacity: 0.9; }
+    .logo-two { position: fixed;
+      top: 12px;
+      left: 12px;
+      width: 200px;
+      height: auto;
+      margin: 0;
+      z-index: 1000;}
+    html, body { background-color: #cce0ff; }
+  </style>
+</head>
+<body>
+
+<img src="images/logo1.png" alt="Logo 1" class="logo-two" />
+
+  <h1>QR Generator</h1>
+
+  <section id="loginSection" class="active">
+    <h2>Вход</h2>
+    <input type="tel" id="phone" placeholder="Номер телефона" />
+    <span class="error" id="loginError"></span>
+    <button id="loginBtn">Войти</button>
+  </section>
+
+  <section id="appSection">
+    <p>Телефон: <strong id="userPhone"></strong> <button id="logoutBtn">Выйти</button> <button id="linkTgBtn">Привязать Telegram</button></p>
+    <h2>Новый QR-код</h2>
+    <input type="datetime-local" id="startDate" />
+    <input type="datetime-local" id="endDate" />
+    <input type="number" id="guestCount" placeholder="Количество гостей" min="1" />
+    <input type="text" id="doorPassword" placeholder="Пароль от замка" minlength="4" />
+    <span class="error" id="createError"></span>
+    <button id="createBtn">Создать QR</button>
+
+    <h2>История</h2>
+    <ul id="historyList"></ul>
+  </section>
+
+  <section id="viewSection">
+    <button id="backBtn">← Назад</button>
+    <div id="viewContent"></div>
+  </section>
+
+  <img src="images/logo2.png" alt="Smart lock illustration" class="footer-img" />
+
+  <script>
+    const API = '';
+    const tokenKey = 'token';
+
+    function getToken() { return localStorage.getItem(tokenKey); }
+    function setToken(t) { if (t) localStorage.setItem(tokenKey, t); else localStorage.removeItem(tokenKey); }
+
+    function headers() {
+      const t = getToken();
+      return { 'Content-Type': 'application/json', ...(t ? { 'Authorization': 'Bearer ' + t } : {}) };
+    }
+
+    const loginSection = document.getElementById('loginSection');
+    const appSection = document.getElementById('appSection');
+    const viewSection = document.getElementById('viewSection');
+    const loginError = document.getElementById('loginError');
+    const createError = document.getElementById('createError');
+
+    function show(section) {
+      [loginSection, appSection, viewSection].forEach(s => s.classList.remove('active'));
+      section.classList.add('active');
+    }
+
+    document.getElementById('loginBtn').onclick = async () => {
+      loginError.textContent = '';
+      const phone = document.getElementById('phone').value.trim();
+      if (!phone) { loginError.textContent = 'Введите номер'; return; }
+      try {
+        const r = await fetch(API + '/api/auth/login', { method: 'POST', headers: headers(), body: JSON.stringify({ phoneNumber: phone }) });
+        const data = await r.json();
+        if (!r.ok) { loginError.textContent = data.detail || data.title || 'Ошибка входа'; return; }
+        setToken(data.accessToken);
+        document.getElementById('userPhone').textContent = phone;
+        show(appSection);
+        loadHistory();
+      } catch (e) {
+        loginError.textContent = 'Ошибка сети';
+      }
+    };
+
+    document.getElementById('logoutBtn').onclick = () => { setToken(null); show(loginSection); };
+
+    document.getElementById('linkTgBtn').onclick = async () => {
+      try {
+        const r = await fetch(API + '/api/telegram/link-url', { headers: headers() });
+        if (!r.ok) { alert('Не настроен бот или ошибка'); return; }
+        const d = await r.json();
+        window.open(d.url, '_blank');
+        alert('Нажмите Start в открывшемся чате Telegram.');
+      } catch (_) { alert('Ошибка'); }
+    };
+
+    document.getElementById('createBtn').onclick = async () => {
+      createError.textContent = '';
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      const guests = parseInt(document.getElementById('guestCount').value, 10);
+      const pwd = document.getElementById('doorPassword').value;
+      if (!start || !end || !guests || !pwd || pwd.length < 4) {
+        createError.textContent = 'Заполните все поля, пароль не менее 4 символов';
+        return;
+      }
+      try {
+        const r = await fetch(API + '/api/qr', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({
+            startDate: new Date(start).toISOString(),
+            endDate: new Date(end).toISOString(),
+            guestCount: guests,
+            doorLockPassword: pwd
+          })
+        });
+        const data = await r.json();
+        if (!r.ok) { createError.textContent = data.detail || data.title || 'Ошибка'; return; }
+        loadHistory();
+        showQr(data);
+      } catch (e) {
+        createError.textContent = 'Ошибка сети';
+      }
+    };
+
+    async function loadHistory() {
+      const ul = document.getElementById('historyList');
+      ul.innerHTML = '';
+      try {
+        const r = await fetch(API + '/api/qr/history', { headers: headers() });
+        if (!r.ok) return;
+        const list = await r.json();
+        list.forEach(q => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>${new Date(q.createdAt).toLocaleString()} — гостей: ${q.guestCount}</span><span><a href="#" data-id="${q.qrCodeId}">Открыть</a> <button class="sendTg" data-id="${q.qrCodeId}">В Telegram</button></span>`;
+          li.querySelector('a').onclick = (e) => { e.preventDefault(); showQr(q); };
+          li.querySelector('.sendTg').onclick = () => sendToTelegram(q.qrCodeId);
+          ul.appendChild(li);
+        });
+      } catch (_) {}
+    }
+
+    function showQr(q) {
+      const content = document.getElementById('viewContent');
+      content.innerHTML = `
+        <p><strong>Заезд:</strong> ${new Date(q.startDate).toLocaleString()} — ${new Date(q.endDate).toLocaleString()}</p>
+        <p><strong>Гостей:</strong> ${q.guestCount}, <strong>Пароль:</strong> ${q.doorLockPassword}</p>
+        <img class="qr-img" src="data:image/png;base64,${q.qrCodeImageBase64}" alt="QR" />
+      `;
+      show(viewSection);
+    }
+
+    document.getElementById('backBtn').onclick = () => { show(appSection); loadHistory(); };
+
+    async function sendToTelegram(id) {
+      try {
+        const r = await fetch(API + '/api/qr/' + id + '/send-telegram', { method: 'POST', headers: headers() });
+        if (r.status === 400) alert('Сначала нажмите «Привязать Telegram» и затем Start в боте.');
+        else if (r.ok) alert('Отправлено в Telegram');
+        else alert('Ошибка');
+      } catch (_) { alert('Ошибка сети'); }
+    }
+
+    if (getToken()) {
+      document.getElementById('userPhone').textContent = '(авторизован)';
+      show(appSection);
+      loadHistory();
+    }
+  </script>
+</body>
+</html>
