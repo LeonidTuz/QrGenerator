@@ -26,7 +26,7 @@ JWT_SECRET=MyLocalSecretKeyAtLeast32CharactersLong
 JWT_ISSUER=QrGenerator
 JWT_AUDIENCE=QrGeneratorClient
 TELEGRAM_BOT_TOKEN=Ваш токен
-TELEGRAM_BOT_USERNAME=Ваш токен без @
+TELEGRAM_BOT_USERNAME=Имя бота без @
 ```
 
 Пример `.env` с Telegram:
